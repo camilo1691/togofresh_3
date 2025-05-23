@@ -1,29 +1,26 @@
-# Stage 1: Build the application
-FROM eclipse-temurin:23-jdk AS builder
+# Etapa 1: Construcción de la aplicación con Maven
+FROM maven:3.9-eclipse-temurin-23 AS builder
 
-# Set the working directory
+# Establece el directorio de trabajo
 WORKDIR /app
 
-# Copy the application code
+# Copia el código fuente del proyecto
 COPY . .
 
-# Given permissions to mvnw
-RUN chmod +x mvnw
+# Ejecuta el build con Maven (sin pruebas)
+RUN mvn clean package -DskipTests
 
-# Build the application (requires Maven or Gradle)
-RUN ./mvnw clean package -DskipTests
-
-# Stage 2: Run the application
+# Etapa 2: Imagen liviana para ejecutar el JAR
 FROM eclipse-temurin:23-jre
 
-# Set the working directory
+# Establece el directorio de trabajo
 WORKDIR /app
 
-# Copy the JAR file from the builder stage
+# Copia el archivo JAR generado desde el builder
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expose the port the app will run on
+# Expone el puerto que usa tu app Spring Boot
 EXPOSE 8080
 
-# Command to run the application
+# Comando para ejecutar la app
 ENTRYPOINT ["java", "-jar", "app.jar"]
