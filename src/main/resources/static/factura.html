@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facturación - To Go Fresh</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .invoice-header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .product-table th {
+            background-color: #2c3e50;
+            color: white;
+        }
+        .totals-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .invoice-type-badge {
+            font-size: 1rem;
+            padding: 0.35rem 0.65rem;
+        }
+        .action-buttons {
+            margin-bottom: 20px;
+        }
+        
+        /* Estilos para el autocompletado */
+        .autocomplete-container {
+            position: relative;
+        }
+        
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 0.25rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            display: none;
+        }
+        
+        .autocomplete-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+        }
+        
+        .autocomplete-item:hover, .autocomplete-item.active {
+            background-color: #f8f9fa;
+        }
+        
+        .autocomplete-item .code {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .autocomplete-item .details {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        /* Estilos para campos editables */
+        .editable-field {
+            border: 1px solid transparent;
+            padding: 0.375rem 0.75rem;
+            border-radius: 0.25rem;
+            width: 100%;
+            background-color: transparent;
+        }
+        
+        .editable-field:focus {
+            border-color: #86b7fe;
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            background-color: white;
+        }
+        
+        /* Estilo para el botón de eliminar */
+        .delete-product {
+            color: #dc3545;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+        }
+        
+        .delete-product:hover {
+            color: #bb2d3b;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                padding: 20px;
+                font-size: 12px;
+            }
+            .invoice-header, .card, .totals-section {
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+            .editable-field {
+                border: none !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Botones de acción superiores -->
+        <div class="action-buttons no-print">
+            <button id="cancel-invoice" class="btn btn-outline-danger">Cancelar Factura</button>
+            <button id="main-menu" class="btn btn-outline-primary">Menú Principal</button>
+            <button id="logout" class="btn btn-outline-secondary">Cerrar Sesión</button>
+        </div>
+
+        <div class="invoice-header">
+            <div class="row">
+                <div class="col-md-6">
+                    <h2>FACTURA 
+                        <span id="invoice-type-badge" class="badge bg-success invoice-type-badge">VENTA</span>
+                        <span id="test-badge" class="badge bg-warning text-dark invoice-type-badge" style="display: none;">PRUEBA</span>
+                    </h2>
+                    <div class="mb-3">
+                        <strong>Número:</strong> <span id="invoice-number">F-001-0001</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Fecha:</strong> <span id="invoice-date" th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy')}"></span>
+                    </div>
+                    <div class="mb-3 no-print">
+                        <label class="form-label">Tipo de Factura:</label>
+                        <select id="invoice-type" class="form-select">
+                            <option value="venta">Factura de Venta</option>
+                            <option value="prueba">Factura de Prueba</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 text-end">
+                    <img src="/images/togofresh.png" alt="Logo" style="height: 200px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Datos del Cliente</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3 no-print">
+                            <label class="form-label">Buscar Cliente:</label>
+                            <div class="autocomplete-container">
+                                <input type="text" id="client-search" class="form-control" 
+                                       placeholder="Buscar cliente por nombre o identificación..." autocomplete="off">
+                                <div id="client-results" class="autocomplete-results"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Identificación:</label>
+                            <input type="text" id="client-id" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre:</label>
+                            <input type="text" id="client-name" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Dirección:</label>
+                            <input type="text" id="client-address" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Teléfono:</label>
+                            <input type="text" id="client-phone" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Email:</label>
+                            <input type="text" id="client-email" class="form-control" readonly>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Cliente:</label>
+                            <input type="text" id="client-type" class="form-control" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Productos</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3 no-print">
+                    <div class="col-md-6">
+                        <label class="form-label">Buscar Producto:</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="product-search" class="form-control" 
+                                   placeholder="Buscar producto por código o nombre..." autocomplete="off">
+                            <div id="product-results" class="autocomplete-results"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="table product-table">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Valor Unitario</th>
+                            <th>% Desc.</th>
+                            <th>IVA</th>
+                            <th>Total</th>
+                            <th class="no-print"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-table-body">
+                        <!-- Productos se agregarán aquí dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="totals-section">
+            <div class="row">
+                <div class="col-md-6 no-print">
+                    <div class="mb-3">
+                        <label class="form-label">Forma de Pago:</label>
+                        <select id="payment-method" class="form-control">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="transferencia">Transferencia</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones:</label>
+                        <textarea id="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Total Bruto:</strong></div>
+                        <div class="col-6 text-end" id="subtotal">$0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Descuentos:</strong></div>
+                        <div class="col-6 text-end" id="discounts">$0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Subtotal:</strong></div>
+                        <div class="col-6 text-end" id="subtotal-after-discount">$0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>IVA (19%):</strong></div>
+                        <div class="col-6 text-end" id="tax">$0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Total Neto:</strong></div>
+                        <div class="col-6 text-end" id="total">$0.00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-end mt-4 no-print">
+            <button id="save-draft" class="btn btn-secondary">Guardar Borrador</button>
+            <button id="print-invoice" class="btn btn-primary">Guardar e Imprimir Factura</button>
+            <button id="save-invoice" class="btn btn-success">Guardar Factura</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Cambiar tipo de factura
+            $('#invoice-type').change(function() {
+                if ($(this).val() === 'prueba') {
+                    $('#invoice-type-badge').hide();
+                    $('#test-badge').show();
+                } else {
+                    $('#invoice-type-badge').show();
+                    $('#test-badge').hide();
+                }
+            });
+
+            // Botón Cancelar Factura
+            $('#cancel-invoice').click(function() {
+                if (confirm('¿Está seguro que desea cancelar esta factura? Se perderán todos los datos no guardados.')) {
+                    // Limpiar el formulario
+                    $('#client-search').val('');
+                    $('#client-id, #client-name, #client-address, #client-phone, #client-email, #client-type').val('');
+                    $('#products-table-body').empty();
+                    $('#payment-method').val('efectivo');
+                    $('#notes').val('');
+                    calculateTotals();
+                    
+                    // Generar nuevo número de factura
+                    $('#invoice-number').text(generateInvoiceNumber());
+                    
+                    alert('Factura cancelada. Se ha creado una nueva factura vacía.');
+                }
+            });
+
+            // Botón Menú Principal
+            $('#main-menu').click(function() {
+                if (confirm('¿Desea regresar al menú principal? Los cambios no guardados se perderán.')) {
+                    window.location.href = 'menu-principal.html';
+                }
+            });
+
+            // Botón Cerrar Sesión
+            $('#logout').click(function() {
+                if (confirm('¿Está seguro que desea cerrar la sesión?')) {
+                    window.location.href = 'index.html';
+                }
+            });
+
+            // Configuración de autocompletado para clientes
+            $('#client-search').on('input', function() {
+                const query = $(this).val().trim();
+                const resultsContainer = $('#client-results');
+                
+                if (query.length < 2) {
+                    resultsContainer.hide().empty();
+                    return;
+                }
+                
+                // Simulación de búsqueda AJAX (reemplazar con llamada real a tu API)
+                setTimeout(() => {
+                    $.get('/api/clientes/search', { q: query }, function(data) {
+                        console.log('Clientes encontrados:', data); // Para depuración
+                        if (data.length === 0) {
+                            resultsContainer.html('<div class="autocomplete-item">No se encontraron clientes</div>');
+                        } else {
+                            resultsContainer.empty();
+                            data.forEach(client => {
+                                const item = $(`
+                                    <div class="autocomplete-item" 
+                                         data-id="${client.id}"
+                                         data-name="${client.nombre}"
+                                         data-identificacion="${client.identificacion}"
+                                         data-direccion="${client.direccion}"
+                                         data-telefono="${client.telefono}"
+                                         data-email="${client.email}"
+                                         data-tipo="${client.tipoCliente}">
+                                        <div class="name">${client.nombre}</div>
+                                        <div class="details">
+                                            <span class="identificacion">${client.identificacion}</span> | 
+                                            <span class="email">${client.email}</span>
+                                        </div>
+                                    </div>
+                                `);
+                                resultsContainer.append(item);
+                            });
+                        }
+                        resultsContainer.show();
+                    }).fail(() => {
+                        resultsContainer.html('<div class="autocomplete-item">Error al buscar clientes</div>').show();
+                    });
+                }, 300);
+            });
+            
+            // Selección de cliente
+            $('#client-results').on('click', '.autocomplete-item', function() {
+                const client = {
+                    id: $(this).data('id'),
+                    nombre: $(this).data('name'),
+                    identificacion: $(this).data('identificacion'),
+                    direccion: $(this).data('direccion'),
+                    telefono: $(this).data('telefono'),
+                    email: $(this).data('email'),
+                    tipoCliente: $(this).data('tipo')
+                };
+                
+                $('#client-search').val(client.nombre);
+                $('#client-id').val(client.identificacion);
+                $('#client-name').val(client.nombre);
+                $('#client-address').val(client.direccion);
+                $('#client-phone').val(client.telefono);
+                $('#client-email').val(client.email);
+                $('#client-type').val(client.tipoCliente);
+                
+                $('#client-results').hide().empty();
+            });
+            
+            // Configuración de autocompletado para productos - VERSIÓN CORREGIDA
+            $('#product-search').on('input', function() {
+                const query = $(this).val().trim();
+                const resultsContainer = $('#product-results');
+                
+                if (query.length < 2) {
+                    resultsContainer.hide().empty();
+                    return;
+                }
+                
+                // Simulación de búsqueda AJAX (reemplazar con llamada real a tu API)
+                setTimeout(() => {
+                    $.get('/api/productos/search', { q: query }, function(data) {
+                        console.log('Productos encontrados:', data); // Para depuración
+                        if (data.length === 0) {
+                            resultsContainer.html('<div class="autocomplete-item">No se encontraron productos</div>');
+                        } else {
+                            resultsContainer.empty();
+                            data.forEach(product => {
+                                const item = $(`
+                                    <div class="autocomplete-item" 
+                                         data-id="${product.id_producto}"
+                                         data-codigo="${product.codigo}"
+                                         data-nombre="${product.nombre}"
+                                         data-precio="${product.precio_venta}"
+                                         data-iva="${product.iva}">
+                                        <div>
+                                            <span class="code">${product.id_producto}</span> - 
+                                            <span class="name">${product.nombre}</span>
+                                        </div>
+                                        <div class="details">
+                                            Precio: ${formatCurrency(product.precio_venta)} | 
+                                            ${product.iva ? 'IVA 19%' : 'Sin IVA'}
+                                        </div>
+                                    </div>
+                                `);
+                                resultsContainer.append(item);
+                            });
+                        }
+                        resultsContainer.show();
+                    }).fail(() => {
+                        resultsContainer.html('<div class="autocomplete-item">Error al buscar productos</div>').show();
+                    });
+                }, 300);
+            });
+            
+            // Selección de producto - VERSIÓN CORREGIDA
+            $('#product-results').on('click', '.autocomplete-item', function() {
+                const product = {
+                    id: $(this).data('id'), // id_producto de la base de datos
+                    codigo: $(this).data('codigo'),
+                    nombre: $(this).data('nombre'),
+                    precioVenta: $(this).data('precio'),
+                    iva: $(this).data('iva')
+                };
+                
+                console.log('Producto seleccionado:', product); // Para depuración
+                addProductToTable(product);
+                $('#product-search').val('');
+                $('#product-results').hide().empty();
+                calculateTotals();
+            });
+            
+            // Ocultar resultados al hacer clic fuera
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.autocomplete-container').length) {
+                    $('#client-results, #product-results').hide();
+                }
+            });
+
+            // Función para agregar producto a la tabla - VERSIÓN CORREGIDA
+            function addProductToTable(product) {
+                const rowId = 'product-' + Date.now();
+                const row = `
+                    <tr id="${rowId}">
+                        <td>${product.id}</td> <!-- Mostramos el id_producto aquí -->
+                        <td>${product.nombre}</td>
+                        <td><input type="number" class="editable-field quantity" value="1" min="1" step="1"></td>
+                        <td><input type="number" class="editable-field price" value="${product.precioVenta}" min="0" step="0.01"></td>
+                        <td><input type="number" class="editable-field discount" value="0" min="0" max="100" step="1"></td>
+                        <td>
+                            <select class="editable-field tax">
+                                <option value="19" ${product.iva ? 'selected' : ''}>19%</option>
+                                <option value="0" ${!product.iva ? 'selected' : ''}>0%</option>
+                            </select>
+                        </td>
+                        <td class="total">${formatCurrency(product.precioVenta)}</td>
+                        <td class="no-print text-center">
+                            <button class="delete-product" data-id="${rowId}">×</button>
+                        </td>
+                    </tr>
+                `;
+                $('#products-table-body').append(row);
+                
+                // Agregar eventos para los campos editables
+                $('#' + rowId + ' .editable-field').on('change input', function() {
+                    updateProductTotal(rowId);
+                });
+            }
+
+            // Actualizar total de un producto
+            function updateProductTotal(rowId) {
+                const row = $('#' + rowId);
+                const quantity = parseFloat(row.find('.quantity').val()) || 0;
+                const price = parseFloat(row.find('.price').val()) || 0;
+                const discount = parseFloat(row.find('.discount').val()) || 0;
+                const taxRate = parseFloat(row.find('.tax').val()) || 0;
+                
+                const subtotal = quantity * price;
+                const discountAmount = subtotal * (discount / 100);
+                const taxAmount = (subtotal - discountAmount) * (taxRate / 100);
+                const total = subtotal - discountAmount + taxAmount;
+                
+                row.find('.total').text(formatCurrency(total));
+                calculateTotals();
+            }
+
+            // Formatear moneda
+            function formatCurrency(amount) {
+                const number = parseFloat(amount);
+                if (isNaN(number)) {
+                    return '$0.00';
+                }
+                return '$' + number.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            // Calcular totales
+            function calculateTotals() {
+                let subtotal = 0;
+                let totalDiscount = 0;
+                let totalTax = 0;
+
+                $('#products-table-body tr').each(function() {
+                    const quantity = parseFloat($(this).find('.quantity').val()) || 0;
+                    const price = parseFloat($(this).find('.price').val()) || 0;
+                    const discount = parseFloat($(this).find('.discount').val()) || 0;
+                    const taxRate = parseFloat($(this).find('.tax').val()) || 0;
+
+                    const rowTotal = quantity * price;
+                    const rowDiscount = rowTotal * (discount / 100);
+                    const rowSubtotal = rowTotal - rowDiscount;
+                    const rowTax = rowSubtotal * (taxRate / 100);
+
+                    subtotal += rowSubtotal;
+                    totalDiscount += rowDiscount;
+                    totalTax += rowTax;
+                });
+
+                $('#subtotal').text(formatCurrency(subtotal + totalDiscount));
+                $('#discounts').text(formatCurrency(totalDiscount));
+                $('#subtotal-after-discount').text(formatCurrency(subtotal));
+                $('#tax').text(formatCurrency(totalTax));
+                $('#total').text(formatCurrency(subtotal + totalTax));
+            }
+
+            // Generar número de factura automático
+            function generateInvoiceNumber() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const prefix = 'FAC';
+                const sequence = '0001';
+                return `${prefix}-${year}${month}-${sequence}`;
+            }
+
+            // Asignar número de factura al cargar la página
+            $('#invoice-number').text(generateInvoiceNumber());
+
+            // Eliminar producto
+            $(document).on('click', '.delete-product', function() {
+                const rowId = $(this).data('id');
+                $('#' + rowId).remove();
+                calculateTotals();
+            });
+
+            // Función para guardar factura (retorna una promesa)
+            function saveInvoice() {
+                return new Promise((resolve, reject) => {
+                    const invoiceType = $('#invoice-type').val();
+                    const invoiceData = {
+                        type: invoiceType,
+                        number: $('#invoice-number').text(),
+                        date: $('#invoice-date').text(),
+                        client: {
+                            id: $('#client-id').val(),
+                            name: $('#client-name').val()
+                        },
+                        products: [],
+                        subtotal: $('#subtotal').text().replace('$', '').replace(',', ''),
+                        discounts: $('#discounts').text().replace('$', '').replace(',', ''),
+                        tax: $('#tax').text().replace('$', '').replace(',', ''),
+                        total: $('#total').text().replace('$', '').replace(',', ''),
+                        paymentMethod: $('#payment-method').val(),
+                        notes: $('#notes').val()
+                    };
+
+                    // Recoger productos
+                    $('#products-table-body tr').each(function() {
+                        invoiceData.products.push({
+                            id_producto: $(this).find('td:eq(0)').text(), // Usamos id_producto aquí
+                            name: $(this).find('td:eq(1)').text(),
+                            quantity: $(this).find('.quantity').val(),
+                            unitPrice: $(this).find('.price').val(),
+                            discount: $(this).find('.discount').val(),
+                            tax: $(this).find('.tax').val(),
+                            total: $(this).find('.total').text().replace('$', '').replace(',', '')
+                        });
+                    });
+
+                    // Validar factura de prueba
+                    if (invoiceType === 'prueba') {
+                        invoiceData.number = 'PRUEBA-' + invoiceData.number;
+                        if (!confirm('Está creando una factura de prueba. ¿Desea continuar?')) {
+                            reject('Operación cancelada por el usuario');
+                            return;
+                        }
+                    }
+
+                    // Validar datos mínimos
+                    if (!invoiceData.client.id || invoiceData.products.length === 0) {
+                        alert('Debe seleccionar un cliente y agregar al menos un producto');
+                        reject('Datos incompletos');
+                        return;
+                    }
+
+                    console.log('Datos a enviar:', invoiceData); // Para depuración
+
+                    // Enviar datos al servidor
+                    $.ajax({
+                        url: '/api/facturas',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(invoiceData),
+                        success: function(response) {
+                            resolve(response);
+                        },
+                        error: function(xhr) {
+                            reject(xhr.responseText || 'Error al guardar la factura');
+                        }
+                    });
+                });
+            }
+
+            // Guardar factura
+            $('#save-invoice').click(function() {
+                saveInvoice()
+                    .then(() => {
+                        alert('Factura guardada exitosamente');
+                        // Aquí podrías redirigir o limpiar el formulario
+                    })
+                    .catch(error => {
+                        alert(error);
+                    });
+            });
+
+            // Guardar e imprimir factura
+            $('#print-invoice').click(function() {
+                saveInvoice()
+                    .then(() => {
+                        printInvoice();
+                    })
+                    .catch(error => {
+                        alert(error);
+                    });
+            });
+
+            // Función para imprimir la factura
+            function printInvoice() {
+                const printContent = $('.container').clone();
+                printContent.find('.no-print').remove();
+                
+                // Convertir campos editables a texto normal para impresión
+                printContent.find('.editable-field').each(function() {
+                    $(this).replaceWith($('<div>').text($(this).val()));
+                });
+                
+                const printWindow = window.open('', '_blank');
+                const invoiceNumber = $('#invoice-number').text();
+                const contentHtml = printContent.html();
+                
+                const printDoc = `<!DOCTYPE html>
+<html>
+<head>
+    <title>Factura ${invoiceNumber}</title>
+    <style>
+        body { font-family: Arial; font-size: 12px; padding: 20px; }
+        .invoice-header, .card, .totals-section { 
+            border: 1px solid #ddd; margin-bottom: 15px; padding: 15px;
+            page-break-inside: avoid;
+        }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th { background-color: #f2f2f2; text-align: left; padding: 8px; }
+        td { padding: 8px; border-bottom: 1px solid #ddd; }
+        .text-end { text-align: right; }
+        .totals-section { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>${contentHtml}</body>
+</html>`;
+                
+                printWindow.document.write(printDoc);
+                printWindow.document.close();
+            }
+        });
+    </script>
+</body>
+</html>

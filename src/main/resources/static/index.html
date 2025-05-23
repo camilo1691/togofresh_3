@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To Go Fresh - Inicio de sesión</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            display: flex;
+            height: 100vh;
+        }
+        
+        .logo-section {
+            flex: 1;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        
+        .logo-container {
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .logo-img {
+            width: 500px;
+            margin-bottom: 3rem;
+        }
+        
+        .login-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f1f3f5;
+        }
+        
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        
+        .tagline {
+            color: #7f8c8d;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+        
+        .login-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+        
+        .login-subtitle {
+            color: #7f8c8d;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .forgot-password {
+            text-align: right;
+            margin: 0.5rem 0 1.5rem;
+        }
+        
+        .forgot-password a {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+        
+        .login-button {
+            width: 100%;
+            padding: 12px;
+            background-color: #34dba3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-button:hover {
+            background-color: #2980b9;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .logo-section, .login-section {
+                padding: 1.5rem;
+            }
+            
+            .login-container {
+                width: 100%;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sección del logo (izquierda) -->
+    <div class="logo-section">
+        <div class="logo-container">
+            <!-- Reemplaza "logo.png" con la ruta de tu imagen -->
+            <img src="/images/togofresh.png" alt="To Go Fresh Logo" class="logo-img">
+            <p class="tagline">            En To Go Fresh estamos contentos de que trabajes con nosotros</p>
+        </div>
+    </div>
+    
+    <!-- Sección de login (derecha) -->
+    <div class="login-section">
+        <div class="login-container">
+            <h2 class="login-title">Iniciar sesión</h2>
+            <p class="login-subtitle">Inicie sesión ingresando su dirección de correo electrónico y contraseña.</p>
+            
+            <form action="/api/auth/login" method="POST">
+                <div class="form-group">
+                    <label for="username">Usuario</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <div class="forgot-password">
+                    <a href="#">¿Olvidaste tu Contraseña?</a>
+                </div>
+                
+                <button type="submit" class="login-button">Ingresar</button>
+
+                <!-- Mensaje de error -->
+                <div id="error-message" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script para manejar errores -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const errorElement = document.getElementById('error-message');
+
+            if (error === 'bad_credentials') {
+                errorElement.textContent = 'Usuario o contraseña incorrectos';
+            } else if (error === 'account_locked') {
+                errorElement.textContent = 'Cuenta bloqueada temporalmente';
+            } else if (error === 'server_error') {
+                errorElement.textContent = 'Error en el servidor. Intente nuevamente.';
+            }
+        });
+    </script>
+</body>
+</html>

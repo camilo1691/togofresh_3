@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.togofresh.togofresh.ToGoFreshApplicationTests
+-------------------------------------------------------------------------------
+Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 59.99 s -- in com.togofresh.togofresh.ToGoFreshApplicationTests

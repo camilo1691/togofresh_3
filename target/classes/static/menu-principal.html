@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú Principal - To Go Fresh</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+        }
+        
+        .logo-section {
+            width: 60%;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            color: white;
+        }
+        
+        .logo-container {
+            text-align: center;
+        }
+        
+        .logo-img {
+            width: 800px;
+            margin-bottom: 1rem;
+        }
+        
+        .logo-title {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .menu-section {
+            width: 60%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .menu-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .menu-header h1 {
+            color: #2c3e50;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .menu-header p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .menu-item {
+            background-color: #ffffff;
+            border-radius: 10px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #3498db;
+        }
+        
+        .menu-item h2 {
+            color: #2c3e50;
+            font-size: 1.3rem;
+        }
+
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+        }
+
+        .logout-btn:hover {
+            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .logo-section, .menu-section {
+                width: 100%;
+                padding: 1.5rem;
+            }
+            
+            .logo-section {
+                padding-top: 3rem;
+                padding-bottom: 3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sección del logo (izquierda) -->
+    <div class="logo-section">
+        <div class="logo-container">
+            <!-- Reemplaza con la ruta correcta de tu logo -->
+            <img src="/images/togofresh.png" alt="To Go Fresh Logo" class="logo-img">
+            <h1 class="logo-title">To Go</h1>
+            <h1 class="logo-title">Fresh</h1>
+        </div>
+    </div>
+    
+    <!-- Sección del menú (derecha) -->
+    <div class="menu-section">
+        <div class="menu-header">
+            <h1>Menú Principal</h1>
+            <p>www.togofresh.com/menuprincipal</p>
+        </div>
+        
+        <div class="menu-grid">
+            <div class="menu-item" onclick="navigateTo('ventas')">
+                <h2>VENTAS</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('compras')">
+                <h2>COMPRAS</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('reportes')">
+                <h2>REPORTES</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('usuarios')">
+                <h2>USUARIOS</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('proveedores')">
+                <h2>PROVEEDORES</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('clientes')">
+                <h2>CLIENTES</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('inventario')">
+                <h2>INVENTARIO</h2>
+            </div>
+            
+            <div class="menu-item" onclick="navigateTo('productos')">
+                <h2>PRODUCTOS</h2>
+            </div>
+        </div>
+
+        <button class="logout-btn" onclick="logout()">CERRAR SESIÓN</button>
+    </div>
+
+    <script>
+        function navigateTo(module) {
+            // Redirigir a diferentes módulos
+            const routes = {
+                'ventas': '/ventas.html',  // Cambiado a .html
+                'compras': '/compras.html',  // Cambiado a .html
+                'reportes': '/reportes.html',  // Cambiado a .html
+                'usuarios': '/usuarios.html',  // Cambiado a .html
+                'proveedores': '/proveedores.html',  // Cambiado a .html
+                'clientes': '/clientes.html',  // Cambiado a .html
+                'inventario': '/inventario.html',  // Cambiado a .html
+                'productos': '/productos.html'  // Cambiado a .html
+            };
+            
+            window.location.href = routes[module] || '/';
+        }
+
+        function logout() {
+            // Redirigir a la página principal al cerrar sesión
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
